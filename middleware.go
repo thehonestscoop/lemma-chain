@@ -86,3 +86,10 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 		return next(c)
 	}
 }
+
+func nocache(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("Cache-Control", "private")
+		return next(c)
+	}
+}
