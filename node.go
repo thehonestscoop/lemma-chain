@@ -34,8 +34,6 @@ func createNodeHandler(c echo.Context) error {
 		Facet string `json:"node.parent|facet,omitempty"`
 	}
 
-	var linkAddress string
-
 	if r.Data == nil {
 		return c.JSON(http.StatusBadRequest, ErrorFmt("data payload must not be empty"))
 	} else {
@@ -54,48 +52,17 @@ func createNodeHandler(c echo.Context) error {
 	txn := dg.NewTxn()
 	defer txn.Discard(ctx)
 
-	// Convert Owner to uid (technically this step is not required once logged in)
+	// If the owner name is supplied, check if it is the same as the logged in user.
 	if r.Owner != nil {
-		owner := strings.TrimSpace(*r.Owner)
-		owner = strings.TrimPrefix(owner, "@")
-		linkAddress = "@" + owner
-
-		vars := map[string]string{
-			"$name": owner,
+		suppliedOwnerName := strings.TrimPrefix(strings.TrimSpace(*r.Owner), "@")
+		if suppliedOwnerName == "" {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("owner is invalid"))
 		}
 
-		const q = `
-			query withvar($name: string) {
-				find_owner(func: eq(user.name, $name), first: 1) {
-					uid
-				}
-			}
-		`
-
-		resp, err := txn.QueryWithVars(ctx, q, vars)
-		if err != nil {
-			log.Println(err)
-			return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
+		loggedInUser := c.Get("logged-in-user")
+		if loggedInUser == nil || loggedInUser.(string) != suppliedOwnerName {
+			return c.JSON(http.StatusUnauthorized, ErrorFmt("owner requires login"))
 		}
-
-		type Root struct {
-			FindOwner []struct {
-				UID string `json:"uid"`
-			} `json:"find_owner"`
-		}
-
-		var root Root
-		err = json.Unmarshal(resp.Json, &root)
-		if err != nil {
-			log.Println(err)
-			return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
-		}
-
-		if len(root.FindOwner) == 0 {
-			return c.JSON(http.StatusBadRequest, ErrorFmt("can't find owner"))
-		}
-
-		r.Owner = &[]string{root.FindOwner[0].UID}[0]
 	}
 
 	// Convert Parents to uid
@@ -211,7 +178,8 @@ func createNodeHandler(c echo.Context) error {
 	}
 
 	if r.Owner != nil {
-		data["node.owner"] = &owner{ID: *r.Owner}
+		// an owner has been provided and it is validated
+		data["node.owner"] = &owner{ID: c.Get("logged-in-user-uid").(string)}
 	}
 
 	if len(links) > 0 {
@@ -246,10 +214,10 @@ func createNodeHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
-	if linkAddress == "" {
-		linkAddress = hashid
-	} else {
-		linkAddress = linkAddress + "/" + hashid
+	linkAddress := hashid
+	if r.Owner != nil {
+		// an owner has been provided and it is validated
+		linkAddress = "@" + c.Get("logged-in-user").(string) + "/" + linkAddress
 	}
 
 	err = txn.Commit(ctx)
