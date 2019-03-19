@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,13 +9,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo"
 )
 
 type ChainModel struct {
-	UID    string       `json:"uid"` // We may need to fetch each node's owner name later
+	UID   string `json:"uid"` // We may need to fetch each node's owner name later
+	Owner []struct {
+		Name string `json:"user.name"`
+	} `json:"node.owner"`
 	HashID string       `json:"node.hashid"`
 	XData  string       `json:"node.xdata"`
 	Parent []ChainModel `json:"node.parent"`
@@ -36,8 +40,13 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 	}
 
 	out := map[string]interface{}{
-		"id":   cm.HashID, // prepend with owner name
 		"data": data,
+	}
+
+	if len(cm.Owner) == 1 {
+		out["id"] = "@" + cm.Owner[0].Name + "/" + cm.HashID
+	} else {
+		out["id"] = cm.HashID
 	}
 
 	if len(cm.Parent) != 0 {
@@ -53,6 +62,13 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 
 func findChainHandler(c echo.Context) error {
 	ctx := c.Request().Context()
+
+	if stdQueryTimeout != 0 {
+		// Create a max query timeout
+		_ctx, cancel := context.WithTimeout(ctx, stdQueryTimeout*time.Millisecond)
+		defer cancel()
+		ctx = _ctx
+	}
 
 	nodeID := strings.TrimSpace(c.Param("*"))
 
@@ -89,6 +105,11 @@ func findChainHandler(c echo.Context) error {
 
 	resp, err := txn.QueryWithVars(ctx, q, vars)
 	if err != nil {
+		if strings.Contains(err.Error(), "context canceled") {
+			return c.NoContent(http.StatusNoContent)
+		} else if strings.Contains(err.Error(), "context deadline exceeded") {
+			return c.NoContent(http.StatusRequestTimeout)
+		}
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
@@ -135,7 +156,9 @@ func findChainHandler(c echo.Context) error {
 	q = `
 		query withvar($hashid: string) {
 			chain(func: eq(node.hashid, $hashid)) %s {
-				uid
+				uid # remove after bug: https://github.com/dgraph-io/dgraph/issues/3163
+				node.owner
+    			user.name
     			node.hashid
     			node.xdata
     			node.parent @facets
@@ -145,6 +168,11 @@ func findChainHandler(c echo.Context) error {
 
 	resp, err = txn.QueryWithVars(ctx, fmt.Sprintf(q, recursive), vars)
 	if err != nil {
+		if strings.Contains(err.Error(), "context canceled") {
+			return c.NoContent(http.StatusNoContent)
+		} else if strings.Contains(err.Error(), "context deadline exceeded") {
+			return c.NoContent(http.StatusRequestTimeout)
+		}
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
@@ -159,12 +187,6 @@ func findChainHandler(c echo.Context) error {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
-
-	// Fetch owner names
-
-	// uids := []string{}
-
-	fmt.Println("spew", spew.Sdump(rootChain))
 
 	return c.JSON(http.StatusOK, rootChain.Chain)
 
