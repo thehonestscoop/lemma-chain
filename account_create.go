@@ -14,10 +14,11 @@ import (
 )
 
 type account struct {
-	Name      string `json:"name" form:"name"` // Check for uniqueness
-	Email     string `json:"email" form:"email"`
-	Password1 string `json:"password_1" form:"password_1"`
-	Password2 string `json:"password_2" form:"password_2"`
+	Name          string `json:"name" form:"name"` // Check for uniqueness
+	Email         string `json:"email" form:"email"`
+	Password1     string `json:"password_1" form:"password_1"`
+	Password2     string `json:"password_2" form:"password_2"`
+	RecaptchaCode string `json:"recaptcha_code" form:"recaptcha_code"`
 }
 
 func createAccountHandler(c echo.Context) error {
@@ -82,6 +83,11 @@ func createAccountHandler(c echo.Context) error {
 
 	if u.Password1 != u.Password2 {
 		return c.JSON(http.StatusBadRequest, ErrorFmt("passwords must match"))
+	}
+
+	err := recaptchaCheck(u.RecaptchaCode)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorFmt("recaptcha invalid"))
 	}
 
 	// Attempt to save user account

@@ -9,3 +9,5 @@ const maxDataPayload = 12 // 12kB
 const stdQueryTimeout = 300 // 300ms
 
 const cacheDuration = 5 // 5 minutes
+
+const recaptchaSecret = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe" // 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe for testing

@@ -32,6 +32,7 @@ type ref struct {
 	Searchable     bool     `json:"searchable" form:"searchable"`           // Defaults to false
 	SearchTitle    *string  `json:"search_title" form:"search_title"`       // Optional
 	SearchSynopsis *string  `json:"search_synopsis" form:"search_synopsis"` // Optional
+	RecaptchaCode  string   `json:"recaptcha_code" form:"recaptcha_code"`   // Required
 }
 
 func createNodeHandler(c echo.Context) error {
@@ -93,6 +94,11 @@ func createNodeHandler(c echo.Context) error {
 		if len(*r.SearchSynopsis) > 800 {
 			return c.JSON(http.StatusBadRequest, ErrorFmt("search synopsis must be less than 800 characters"))
 		}
+	}
+
+	err := recaptchaCheck(r.RecaptchaCode)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorFmt("recaptcha invalid"))
 	}
 
 	txn := dg.NewTxn()
