@@ -43,9 +43,10 @@ func main() {
 
 	// Routes
 	e.POST("/accounts", createAccountHandler)
-	e.GET("/accounts/:name", showAccount)
+	e.GET("/accounts/:name", showAccountHandler)
 	e.POST("/ref", createNodeHandler)
-	e.GET("*", findChainHandler)
+	e.GET("/search/:terms", searchHandler) // Cached
+	e.GET("*", findChainHandler)           // Cached
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

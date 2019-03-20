@@ -24,8 +24,8 @@ func setSchema() {
 		node.parent: uid . 
 		node.xdata: string . 
 		node.searchable: bool @index(bool) . 
-		node.search_title: string .
-		node.search_synopsis: string .
+		node.search_title: string @index(term) .
+		node.search_synopsis: string @index(fulltext) .
 		node.created_at: dateTime .
 	`
 
@@ -50,6 +50,6 @@ func setSchema() {
 // node.parent: uid . # [uid] (use facet) (can be null)
 // node.xdata: string . # store custom json data
 // node.searchable: bool @index(bool) .
-// node.search_title: string . # (can be null)
-// node.search_synopsis: string . # (can be null)
+// node.search_title: string @index(term) . # (can be null)
+// node.search_synopsis: string @index(fulltext) . # (can be null)
 // node.created_at: dateTime .

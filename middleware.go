@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo"
+	"github.com/patrickmn/go-cache"
 )
 
 func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
@@ -23,6 +25,18 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
+		// Check cache
+		key := fmt.Sprintf("middleware.loginChecker-%s-%s", account, password)
+		cachedData, found := memoryCache.Get(key)
+		if found {
+			log.Println("Using cache:" + fmt.Sprintf("middleware.loginChecker-%s-xxx", account))
+
+			cd := cachedData.(map[string]string)
+
+			c.Set("logged-in-user", cd["user"])
+			c.Set("logged-in-user-uid", cd["uid"])
+		}
+
 		// Check login
 		txn := dg.NewReadOnlyTxn()
 
@@ -37,13 +51,13 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 				user_check1(func: eq(user.email, $email), first: 1) {
 					uid
 					user.name
-					checkpwd(user.password, $password)
+					checkpwd: checkpwd(user.password, $password)
 				}
 
 				user_check2(func: eq(user.name, $name), first: 1) {
 					uid
 					user.name
-					checkpwd(user.password, $password)
+					checkpwd: checkpwd(user.password, $password)
 				}
 			}
 		`
@@ -59,12 +73,12 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 			Check1 []struct {
 				UID      string `json:"uid"`
 				Name     string `json:"user.name"`
-				Checkpwd bool   `json:"checkpwd(user.password)"`
+				Checkpwd bool   `json:"checkpwd"`
 			} `json:"user_check1"`
 			Check2 []struct {
 				UID      string `json:"uid"`
 				Name     string `json:"user.name"`
-				Checkpwd bool   `json:"checkpwd(user.password)"`
+				Checkpwd bool   `json:"checkpwd"`
 			} `json:"user_check2"`
 		}
 
@@ -78,9 +92,17 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 		if len(r.Check1) == 1 && r.Check1[0].Checkpwd == true {
 			c.Set("logged-in-user", r.Check1[0].Name)
 			c.Set("logged-in-user-uid", r.Check1[0].UID)
+
+			// Store data in cache
+			memoryCache.Set(key, map[string]string{"user": r.Check1[0].Name, "uid": r.Check1[0].UID},
+				cache.DefaultExpiration)
 		} else if len(r.Check2) == 1 && r.Check2[0].Checkpwd == true {
 			c.Set("logged-in-user", r.Check2[0].Name)
 			c.Set("logged-in-user-uid", r.Check2[0].UID)
+
+			// Store data in cache
+			memoryCache.Set(key, map[string]string{"user": r.Check2[0].Name, "uid": r.Check2[0].UID},
+				cache.DefaultExpiration)
 		}
 
 		return next(c)

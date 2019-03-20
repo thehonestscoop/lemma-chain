@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
+	"github.com/patrickmn/go-cache"
 )
 
 type ChainModel struct {
@@ -63,13 +64,6 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 func findChainHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	if stdQueryTimeout != 0 {
-		// Create a max query timeout
-		_ctx, cancel := context.WithTimeout(ctx, stdQueryTimeout*time.Millisecond)
-		defer cancel()
-		ctx = _ctx
-	}
-
 	nodeID := strings.TrimSpace(c.Param("*"))
 
 	ownerName, hashID, err := splitNodeID(nodeID)
@@ -84,6 +78,21 @@ func findChainHandler(c echo.Context) error {
 		if err != nil || depth == 0 {
 			return c.JSON(http.StatusBadRequest, ErrorFmt("depth query param is malformed"))
 		}
+	}
+
+	// Check cache
+	key := fmt.Sprintf("*-%s-%s", nodeID, _depth)
+	cachedData, found := memoryCache.Get(key)
+	if found {
+		log.Println("Using cache:" + key)
+		return c.JSON(http.StatusOK, cachedData)
+	}
+
+	if stdQueryTimeout != 0 {
+		// Create a max query timeout
+		_ctx, cancel := context.WithTimeout(ctx, stdQueryTimeout*time.Millisecond)
+		defer cancel()
+		ctx = _ctx
 	}
 
 	txn := dg.NewReadOnlyTxn()
@@ -188,6 +197,9 @@ func findChainHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
+	// Store data in cache
+	memoryCache.Set(key, rootChain.Chain, cache.DefaultExpiration)
+
 	return c.JSON(http.StatusOK, rootChain.Chain)
 
 }
@@ -221,41 +233,3 @@ func splitNodeID(nodeID string) (*string, string, error) {
 
 	return &ownerID, splits[1], nil
 }
-
-// When setting a depth value:
-
-// spew (main.RootChain) {
-//  Chain: ([]main.ChainModel) (len=1 cap=4) {
-//   (main.ChainModel) {
-//    UID: (string) (len=6) "0x4e78",
-//    HashID: (string) (len=10) "7nil4uzhw5",
-//    XData: (string) (len=35) "{\"test\":\"xxx\",\"sdagsdg\":[\"sdgsdg\"]}",
-//    Parent: ([]main.ChainModel) (len=1 cap=4) {
-//     (main.ChainModel) {
-//      UID: (string) (len=6) "0x4e77",
-//      HashID: (string) (len=9) "roi5euph3",
-//      XData: (string) (len=35) "{\"test\":\"xxx\",\"sdagsdg\":[\"sdgsdg\"]}",
-//      Parent: ([]main.ChainModel) (len=1 cap=4) {
-//       (main.ChainModel) {
-//        UID: (string) (len=6) "0x4e76",
-//        HashID: (string) (len=9) "6ni0yujh2",
-//        XData: (string) (len=35) "{\"test\":\"xxx\",\"sdagsdg\":[\"sdgsdg\"]}",
-//        Parent: ([]main.ChainModel) (len=1 cap=4) {
-//         (main.ChainModel) {
-//          UID: (string) "",
-//          HashID: (string) "",
-//          XData: (string) "",
-//          Parent: ([]main.ChainModel) <nil>,
-//          Facet: (*string)(0xc00020d280)((len=8) "required")
-//         }
-//        },
-//        Facet: (*string)(0xc00020d290)((len=8) "required")
-//       }
-//      },
-//      Facet: (*string)(0xc00020d2a0)((len=8) "required")
-//     }
-//    },
-//    Facet: (*string)(<nil>)
-//   }
-//  }
-// }

@@ -16,19 +16,19 @@ type showAccountModel struct {
 	Email string `json:"email,omitempty"`
 
 	Refs []struct {
-		ID             string    `json:"id"` // Prepend with owner name
+		ID             string    `json:"id"`
 		Data           string    `json:"data"`
 		Searchable     bool      `json:"searchable"`
-		SearchTitle    *bool     `json:"search_title,omitempty"`
-		SearchSynopsis *bool     `json:"search_synopsis,omitempty"`
+		SearchTitle    *string   `json:"search_title,omitempty"`
+		SearchSynopsis *string   `json:"search_synopsis,omitempty"`
 		CreatedAt      time.Time `json:"created_at"`
 	} `json:"refs"`
 }
 
-// showAccount will list account information and all refs owned by the account.
+// showAccountHandler will list account information and all refs owned by the account.
 // If logged in, display email address and searchable nodes.
 // If not logged in, hide email address and all searchable nodes.
-func showAccount(c echo.Context) error {
+func showAccountHandler(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
@@ -49,7 +49,7 @@ func showAccount(c echo.Context) error {
 				%s # email: user.email
 
 				refs: ~node.owner(orderdesc: node.created_at) @filter( %s ) {
-					uid
+					# uid
 					id: node.hashid
 					data: node.xdata
 					searchable: node.searchable
@@ -94,8 +94,8 @@ func showAccount(c echo.Context) error {
 				ID             string    `json:"id"`
 				Data           string    `json:"data"`
 				Searchable     bool      `json:"searchable"`
-				SearchTitle    *bool     `json:"search_title,omitempty"`
-				SearchSynopsis *bool     `json:"search_synopsis,omitempty"`
+				SearchTitle    *string   `json:"search_title,omitempty"`
+				SearchSynopsis *string   `json:"search_synopsis,omitempty"`
 				CreatedAt      time.Time `json:"created_at"`
 			}{}
 		} else {

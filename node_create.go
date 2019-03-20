@@ -14,10 +14,24 @@ import (
 	"github.com/speps/go-hashids"
 )
 
+var h *hashids.HashID
+
+func init() {
+	// Configure hashid generator for converting uids to hashids
+	hd := hashids.NewData()
+	hd.Salt = hashIDSalt
+	hd.MinLength = 6
+	hd.Alphabet = "abcdefghijklmnopqrstuvwxyz1234567890"
+	h, _ = hashids.NewWithData(hd)
+}
+
 type ref struct {
-	Owner  *string  `json:"owner" form:"owner"`   // Optional
-	Parent []string `json:"parent" form:"parent"` // Optional with facets
-	Data   *string  `json:"data" form:"data"`     // Required <- check max size
+	Owner          *string  `json:"owner" form:"owner"`                     // Optional
+	Parents        []string `json:"parents" form:"parents"`                 // Optional with facets
+	Data           *string  `json:"data" form:"data"`                       // Required <- check max size
+	Searchable     bool     `json:"searchable" form:"searchable"`           // Defaults to false
+	SearchTitle    *string  `json:"search_title" form:"search_title"`       // Optional
+	SearchSynopsis *string  `json:"search_synopsis" form:"search_synopsis"` // Optional
 }
 
 func createNodeHandler(c echo.Context) error {
@@ -49,6 +63,38 @@ func createNodeHandler(c echo.Context) error {
 		}
 	}
 
+	// Validate search related input
+	if r.Searchable == true {
+		// We require at least a title or synopsis
+		if r.SearchTitle == nil && r.SearchSynopsis == nil {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("when searchable is true, a search title or search synopsis is required"))
+		}
+	}
+
+	if r.SearchTitle != nil {
+		*r.SearchTitle = strings.TrimSpace(*r.SearchTitle)
+
+		if *r.SearchTitle == "" {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("search title must not be empty"))
+		}
+
+		if len(*r.SearchTitle) > 100 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("search title must be less than 100 characters"))
+		}
+	}
+
+	if r.SearchSynopsis != nil {
+		*r.SearchSynopsis = strings.TrimSpace(*r.SearchSynopsis)
+
+		if *r.SearchSynopsis == "" {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("search synopsis must not be empty"))
+		}
+
+		if len(*r.SearchSynopsis) > 800 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("search synopsis must be less than 800 characters"))
+		}
+	}
+
 	txn := dg.NewTxn()
 	defer txn.Discard(ctx)
 
@@ -68,10 +114,10 @@ func createNodeHandler(c echo.Context) error {
 	// Convert Parents to uid
 	links := []owner{}
 
-	if len(r.Parent) != 0 {
+	if len(r.Parents) != 0 {
 
-		if len(r.Parent) > 100 {
-			return c.JSON(http.StatusBadRequest, ErrorFmt("max 100 parents permitted"))
+		if len(r.Parents) > 100 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("max 100 parent refs permitted"))
 		}
 
 		type P struct {
@@ -82,9 +128,9 @@ func createNodeHandler(c echo.Context) error {
 
 		Ps := []P{}
 
-		filterQ := []string{}
+		hashids := []string{}
 
-		for _, val := range r.Parent {
+		for _, val := range r.Parents {
 			facet, ownerName, hashID, err := splitRefName(val)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, ErrorFmt(err))
@@ -93,23 +139,23 @@ func createNodeHandler(c echo.Context) error {
 			Ps = append(Ps, P{facet, ownerName, hashID})
 
 			// WARNING: SQL Injection issues
-			filterQ = append(filterQ, fmt.Sprintf("( eq(node.hashid, \"%s\") )", hashID))
+			hashids = append(hashids, fmt.Sprintf("\"%s\"", hashID))
 		}
 
 		// Fetch all hashids and owner names using only hashids
 		const q = `
-		{
-			find_nodes(func: has(node)) @filter( %s ) @normalize {
-				uid
-				hashid: node.hashid
-				node.owner  {
-					owner_name: user.name
+			{
+				find_nodes(func: eq(node.hashid, %s)) @normalize {
+					uid
+					hashid: node.hashid
+					node.owner  {
+						owner_name: user.name
+					}
 				}
 			}
-		}
 		`
 
-		resp, err := txn.Query(ctx, fmt.Sprintf(q, strings.Join(filterQ, " OR ")))
+		resp, err := txn.Query(ctx, fmt.Sprintf(q, "["+strings.Join(hashids, ", ")+"]"))
 		if err != nil {
 			log.Println(err)
 			return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
@@ -146,19 +192,19 @@ func createNodeHandler(c echo.Context) error {
 			// Check if hashID is valid. Does it exist?
 			rk, exists := rootKey[userHashID]
 			if !exists {
-				return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent does not exist"))
+				return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent ref does not exist"))
 			}
 
 			// Check if node's owner is consistent with what user provided
 			if p.ownerName == nil {
 				if rk.OwnerName != nil {
-					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent does not exist"))
+					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent ref does not exist"))
 				}
 			} else {
 				if rk.OwnerName == nil {
-					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent does not exist"))
+					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent ref does not exist"))
 				} else if *p.ownerName != *rk.OwnerName {
-					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent does not exist"))
+					return c.JSON(http.StatusBadRequest, ErrorFmt("provided parent ref does not exist"))
 				}
 			}
 
@@ -173,7 +219,7 @@ func createNodeHandler(c echo.Context) error {
 	data := map[string]interface{}{
 		"node":            true,
 		"node.xdata":      compactedJson,
-		"node.searchable": false,
+		"node.searchable": r.Searchable,
 		"node.created_at": time.Now(),
 	}
 
@@ -186,6 +232,14 @@ func createNodeHandler(c echo.Context) error {
 		data["node.parent"] = links
 	}
 
+	if r.SearchTitle != nil {
+		data["node.search_title"] = *r.SearchTitle
+	}
+
+	if r.SearchSynopsis != nil {
+		data["node.search_synopsis"] = *r.SearchSynopsis
+	}
+
 	assigned, err := txn.Mutate(ctx, &api.Mutation{SetJson: marshall(data)})
 	if err != nil {
 		log.Println(err)
@@ -195,11 +249,6 @@ func createNodeHandler(c echo.Context) error {
 	// Update hashid of link
 	uid := assigned.Uids["blank-0"]
 
-	hd := hashids.NewData()
-	hd.Salt = hashIDSalt
-	hd.MinLength = 6
-	hd.Alphabet = "abcdefghijklmnopqrstuvwxyz1234567890"
-	h, _ := hashids.NewWithData(hd)
 	hashid, err := h.EncodeHex(uid[2:])
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
@@ -236,13 +285,13 @@ func splitRefName(refName string) (string, *string, string, error) {
 
 	refName = strings.TrimSpace(refName)
 	if refName == "" {
-		return "", nil, "", errors.New("invalid parent")
+		return "", nil, "", errors.New("invalid parent ref")
 	}
 
 	// Obtain facet name
 	splits := strings.Split(refName, ":")
 	if len(splits) == 0 || len(splits) == 1 {
-		return "", nil, "", errors.New("invalid parent")
+		return "", nil, "", errors.New("invalid parent ref")
 	}
 
 	facet := splits[0]
@@ -256,7 +305,7 @@ func splitRefName(refName string) (string, *string, string, error) {
 	remainder := strings.Join(splits[1:], ":")
 
 	if len(remainder) == 0 {
-		return "", nil, "", errors.New("invalid parent") // Nothing after :
+		return "", nil, "", errors.New("invalid parent ref") // Nothing after :
 	}
 
 	// Obtain owner name and hashid
@@ -269,23 +318,23 @@ func splitRefName(refName string) (string, *string, string, error) {
 		return facet, nil, splits[0], nil
 	case 2:
 		if splits[0] == "" {
-			return "", nil, "", errors.New("invalid parent")
+			return "", nil, "", errors.New("invalid parent ref")
 		}
 	}
 
 	if string(splits[0][0]) != "@" {
 		// First character of owner name must contain @
-		return "", nil, "", errors.New("provided parent does not exist")
+		return "", nil, "", errors.New("provided parent ref does not exist")
 	}
 
 	ownerName := strings.TrimSpace(strings.TrimPrefix(splits[0], "@"))
 	if ownerName == "" {
-		return "", nil, "", errors.New("invalid parent")
+		return "", nil, "", errors.New("invalid parent ref")
 	}
 
 	hashid := strings.Join(splits[1:], "/")
 	if hashid == "" {
-		return "", nil, "", errors.New("invalid parent")
+		return "", nil, "", errors.New("invalid parent ref")
 	}
 
 	return facet, &ownerName, hashid, nil
