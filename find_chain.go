@@ -16,7 +16,7 @@ import (
 )
 
 type ChainModel struct {
-	UID   string `json:"uid"` // We may need to fetch each node's owner name later
+	UID   string `json:"uid"` // Required due to: https://github.com/dgraph-io/dgraph/issues/3163
 	Owner []struct {
 		Name string `json:"user.name"`
 	} `json:"node.owner"`
@@ -35,11 +35,6 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	if cm.UID == "" {
-		// Due to limited depth, we should ignore this "node": https://github.com/dgraph-io/dgraph/issues/3163
-		return []byte("{}"), nil // TODO: BUG HERE
-	}
-
 	out := map[string]interface{}{
 		"data": data,
 	}
@@ -51,7 +46,11 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 	}
 
 	if len(cm.Parent) != 0 {
-		out["ref"] = cm.Parent
+		if cm.Parent[0].UID != "" {
+			// https://github.com/dgraph-io/dgraph/issues/3163
+			// This approach needs testing
+			out["ref"] = cm.Parent
+		}
 	}
 
 	if cm.Facet != nil {
@@ -165,7 +164,7 @@ func findChainHandler(c echo.Context) error {
 	q = `
 		query withvar($hashid: string) {
 			chain(func: eq(node.hashid, $hashid)) %s {
-				uid # remove after bug: https://github.com/dgraph-io/dgraph/issues/3163
+				uid
 				node.owner
     			user.name
     			node.hashid
