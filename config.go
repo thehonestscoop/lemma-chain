@@ -11,7 +11,7 @@ var maxDataPayload = lookupEnvOrUseDefaultInt("MAX_PAYLOAD_KB", 12)
 const stdQueryTimeout = 300
 
 // cacheDuration sets (in minutes) the duration for which the GET request's response will be cached for.
-const cacheDuration = 5
+const cacheDuration = 15
 
 // recaptchaSecret is used for Google Recaptcha protection in POST requests.
 // Use 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe for testing
