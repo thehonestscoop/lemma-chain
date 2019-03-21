@@ -17,6 +17,7 @@ func setSchema() {
 		user.password: password .
 		user.code: string . 
 		user.created_at: dateTime .
+		user.validated: bool @index(bool) .
 
 		node: bool .
 		node.hashid: string @index(hash) . 
@@ -43,6 +44,7 @@ func setSchema() {
 // user.password: password .
 // user.code: string . # for password recovery (can be null)
 // user.created_at: dateTime .
+// user.validated: bool @index(bool) . # Check if email validation passed
 
 // node: bool .
 // node.hashid: string @index(exact) . # @username/hashid

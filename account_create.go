@@ -146,6 +146,7 @@ func createAccountHandler(c echo.Context) error {
 		Password  string    `json:"user.password"`
 		Code      string    `json:"user.code"`
 		CreatedAt time.Time `json:"user.created_at"`
+		Validated bool      `json:"user.validated"`
 	}{
 		true,
 		u.Name,
@@ -153,6 +154,7 @@ func createAccountHandler(c echo.Context) error {
 		u.Password1,
 		uuid.NewV4().String(),
 		time.Now().UTC(),
+		true,
 	}
 
 	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshall(data)})
