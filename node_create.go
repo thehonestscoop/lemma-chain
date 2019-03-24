@@ -21,7 +21,7 @@ func init() {
 	hd := hashids.NewData()
 	hd.Salt = hashIDSalt
 	hd.MinLength = 6
-	hd.Alphabet = "abcdefghijklmnopqrstuvwxyz1234567890"
+	hd.Alphabet = "abcdefghijklmnpqrstuvwxyz123456789" // Remove o and 0 to avoid confusion
 	h, _ = hashids.NewWithData(hd)
 }
 
