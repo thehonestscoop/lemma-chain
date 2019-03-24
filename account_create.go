@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"hash/crc32"
 	"log"
 	"net/http"
 	"strings"
@@ -152,7 +154,7 @@ func createAccountHandler(c echo.Context) error {
 		u.Name,
 		u.Email,
 		u.Password1,
-		uuid.NewV4().String(),
+		fmt.Sprintf("%08x", crc32.ChecksumIEEE([]byte(uuid.NewV4().String()))),
 		time.Now().UTC(),
 		true,
 	}
