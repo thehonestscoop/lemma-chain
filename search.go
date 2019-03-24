@@ -17,8 +17,8 @@ type searchRef struct {
 	Name           *string   `json:"name"`
 	ID             string    `json:"id"`
 	Data           string    `json:"data"`
-	SearchTitle    string    `json:"search_title"`
-	SearchSynopsis string    `json:"search_synopsis"`
+	SearchTitle    *string   `json:"search_title"`    // add omitempty
+	SearchSynopsis *string   `json:"search_synopsis"` // add omitempty
 	CreatedAt      time.Time `json:"created_at"`
 }
 
@@ -86,7 +86,7 @@ func searchHandler(c echo.Context) error {
 
 	if stdQueryTimeout != 0 {
 		// Create a max query timeout
-		_ctx, cancel := context.WithTimeout(ctx, stdQueryTimeout*time.Millisecond)
+		_ctx, cancel := context.WithTimeout(ctx, time.Duration(stdQueryTimeout)*time.Millisecond)
 		defer cancel()
 		ctx = _ctx
 	}

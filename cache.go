@@ -26,7 +26,7 @@ func (nc *noCache) Set(k string, x interface{}, d time.Duration) {
 
 func init() {
 	if cacheDuration != 0 {
-		memoryCache = cache.New(cacheDuration*time.Minute, 10*time.Minute)
+		memoryCache = cache.New(time.Duration(cacheDuration)*time.Minute, 10*time.Minute)
 	} else {
 		// Cache is disabled
 		memoryCache = &noCache{}
