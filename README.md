@@ -7,6 +7,10 @@
 
 
 
+## TODO
+
+* Password Recovery
+* Account activation via email validation
 
 
 ## License
