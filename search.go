@@ -28,15 +28,8 @@ type searchRef struct {
 
 func (s *searchRef) MarshalJSON() ([]byte, error) {
 
-	data := map[string]interface{}{}
-
-	err := json.Unmarshal([]byte(s.Data), &data)
-	if err != nil {
-		return nil, err
-	}
-
 	out := map[string]interface{}{
-		"data":            data,
+		"data":            s.Data,
 		"created_at":      s.CreatedAt,
 		"search_title":    s.SearchTitle,
 		"search_synopsis": s.SearchSynopsis,
@@ -59,7 +52,7 @@ func searchHandler(c echo.Context) error {
 
 	terms := strings.TrimSpace(c.Param("terms"))
 	if terms == "" {
-		return c.JSON(http.StatusOK, map[string]interface{}{})
+		return c.JSON(http.StatusOK, map[string]interface{}{"results": []int{}})
 	}
 
 	// Check cache

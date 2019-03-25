@@ -25,10 +25,10 @@ type ChainModel struct {
 	Owner []struct {
 		Name string `json:"user.name"`
 	} `json:"node.owner"`
-	HashID string       `json:"node.hashid"`
-	XData  string       `json:"node.xdata"`
-	Parent []ChainModel `json:"node.parent"`
-	Facet  *string      `json:"node.parent|facet"`
+	HashID  string       `json:"node.hashid"`
+	XData   string       `json:"node.xdata"`
+	Parents []ChainModel `json:"node.parent"`
+	Facet   *string      `json:"node.parent|facet"`
 }
 
 func (cm *ChainModel) MarshalJSON() ([]byte, error) {
@@ -50,11 +50,11 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 		out["id"] = cm.HashID
 	}
 
-	if len(cm.Parent) != 0 {
-		if cm.Parent[0].UID != "" {
+	if len(cm.Parents) != 0 {
+		if cm.Parents[0].UID != "" {
 			// https://github.com/dgraph-io/dgraph/issues/3163
 			// This approach needs testing
-			out["ref"] = cm.Parent
+			out["refs"] = cm.Parents
 		}
 	}
 
@@ -69,13 +69,14 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 func findChainHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	nodeID := strings.TrimSpace(c.Param("*"))
+	nodeID := strings.ToLower(strings.TrimSpace(c.Param("*")))
 
 	ownerName, hashID, err := splitNodeID(nodeID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorFmt("can't find ref"))
 	}
 
+	// Depth can be configured by query param
 	var depth int
 	_depth := c.QueryParam("depth")
 	if _depth != "" {
@@ -85,8 +86,16 @@ func findChainHandler(c echo.Context) error {
 		}
 	}
 
+	// Reference types can be configured by query param
+	_refTypes := c.QueryParam("types")
+	refTypes := strings.Split(_refTypes, ",")
+	if len(refTypes) == 1 && refTypes[0] == "" {
+		refTypes = []string{}
+	}
+	sort.Strings(refTypes)
+
 	// Check cache
-	key := fmt.Sprintf("*-%s-%s", nodeID, _depth)
+	key := fmt.Sprintf("*-%s-%s-%s", nodeID, _depth, strings.Join(refTypes, ","))
 	cachedData, found := memoryCache.Get(key)
 	if found {
 		log.Println("Using cache:" + key)
@@ -95,7 +104,7 @@ func findChainHandler(c echo.Context) error {
 
 	if stdQueryTimeout != 0 {
 		// Create a max query timeout
-		_ctx, cancel := context.WithTimeout(ctx, stdQueryTimeout*time.Millisecond)
+		_ctx, cancel := context.WithTimeout(ctx, time.Duration(stdQueryTimeout)*time.Millisecond)
 		defer cancel()
 		ctx = _ctx
 	}
@@ -110,6 +119,7 @@ func findChainHandler(c echo.Context) error {
 	q := `
 		query withvar($hashid: string) {
 			check(func: eq(node.hashid, $hashid)) @normalize {
+				uid: uid
 			    node.owner {
 			    	name: user.name 
 			    }
@@ -130,6 +140,7 @@ func findChainHandler(c echo.Context) error {
 
 	type Root struct {
 		Check []struct {
+			UID  string  `json:"uid"`
 			Name *string `json:"name"`
 		} `json:"check"`
 	}
@@ -141,16 +152,18 @@ func findChainHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
-	if len(root.Check) == 0 {
-		return c.JSON(http.StatusBadRequest, ErrorFmt("can't find ref"))
-	}
-
-	actualName := root.Check[0].Name
 	if ownerName == nil {
-		if actualName != nil {
+		if !(len(root.Check) == 1 && (root.Check[0].Name == nil)) {
+			// Can't find the hashid or name exists
 			return c.JSON(http.StatusBadRequest, ErrorFmt("can't find ref"))
 		}
 	} else {
+		if len(root.Check) == 0 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("can't find ref"))
+		}
+
+		actualName := root.Check[0].Name
+
 		if actualName == nil {
 			return c.JSON(http.StatusBadRequest, ErrorFmt("can't find ref"))
 		} else if *actualName != *ownerName {
@@ -167,6 +180,16 @@ func findChainHandler(c echo.Context) error {
 		recursive = fmt.Sprintf("@recurse(depth:%d,loop:false)", depth)
 	}
 
+	facetFilters := []string{}
+	var facetFiltersStr string
+	if len(refTypes) > 0 {
+		for _, val := range refTypes {
+			facetFilters = append(facetFilters, fmt.Sprintf("eq(facet, \"%s\")", val))
+		}
+
+		facetFiltersStr = "@facets( " + strings.Join(facetFilters, " or ") + " )"
+	}
+
 	q = `
 		query withvar($hashid: string) {
 			chain(func: eq(node.hashid, $hashid)) %s {
@@ -175,12 +198,12 @@ func findChainHandler(c echo.Context) error {
     			user.name
     			node.hashid
     			node.xdata
-    			node.parent @facets
+    			node.parent @facets %s
   			}
 		}
 	`
 
-	resp, err = txn.QueryWithVars(ctx, fmt.Sprintf(q, recursive), vars)
+	resp, err = txn.QueryWithVars(ctx, fmt.Sprintf(q, recursive, facetFiltersStr), vars)
 	if err != nil {
 		if strings.Contains(err.Error(), "context canceled") {
 			return c.NoContent(http.StatusNoContent)
@@ -202,10 +225,18 @@ func findChainHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
-	// Store data in cache
-	memoryCache.Set(key, rootChain.Chain, cache.DefaultExpiration)
+	out := map[string]interface{}{}
 
-	return c.JSON(http.StatusOK, rootChain.Chain)
+	if len(rootChain.Chain[0].Parents) != 0 {
+		out["refs"] = rootChain.Chain[0].Parents
+	} else {
+		out["refs"] = []int{}
+	}
+
+	// Store data in cache
+	memoryCache.Set(key, out, cache.DefaultExpiration)
+
+	return c.JSON(http.StatusOK, out)
 
 }
 
