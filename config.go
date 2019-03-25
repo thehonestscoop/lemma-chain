@@ -1,3 +1,7 @@
+// Copyright 2019
+// The Honest Scoop and P.J. Siripala
+// All rights reserved
+
 package main
 
 // hashIDSalt is used to convert uids to hashids. Once set in production, do not modify
