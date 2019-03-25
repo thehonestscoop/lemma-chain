@@ -20,7 +20,7 @@ func marshall(d interface{}) []byte {
 	return x
 }
 
-// compactJson will remove insignificant spaces
+// compactJson will remove insignificant spaces to minimize storage space in database.
 func compactJson(jsonStr string) (string, error) {
 
 	dst := new(bytes.Buffer)
@@ -34,6 +34,7 @@ func compactJson(jsonStr string) (string, error) {
 	return dst.String(), nil
 }
 
+// recaptchaCheck is used to block POST requests that may be from bots.
 func recaptchaCheck(recaptchaCode string) error {
 
 	if recaptchaSecret == "" {

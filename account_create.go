@@ -27,6 +27,7 @@ type account struct {
 	RecaptchaCode string `json:"recaptcha_code" form:"recaptcha_code"`
 }
 
+// createAccountHandler is the handler to create a new account.
 func createAccountHandler(c echo.Context) error {
 
 	ctx := c.Request().Context()
@@ -195,6 +196,7 @@ func checkEmail(email string) bool {
 	return true
 }
 
+// badDomains is a list of disposable email addresses that we want to block from creating accounts.
 // https://medium.com/@rocketlaunchr.cloud/defeating-disposable-email-addresses-26c697b2722d
 var badDomains = map[string]struct{}{
 	"0-00.usa.cc":                            struct{}{},

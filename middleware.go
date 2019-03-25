@@ -15,6 +15,9 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+// loginChecker is middleware that will check if the user is attempting to login
+// using the request header. If login is successful, record the uid and owner name
+// to echo context.
 func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
@@ -113,6 +116,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// nocache instructs browsers to not record response
 func nocache(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Response().Header().Set("Cache-Control", "private")

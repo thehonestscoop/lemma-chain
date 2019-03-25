@@ -51,6 +51,9 @@ func (s *searchRef) MarshalJSON() ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// searchHandler provides search functionality. It returns all refs that may contain
+// the search terms be in the title or synopsis. It only returns refs that have "searchable"
+// set to true.
 func searchHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 

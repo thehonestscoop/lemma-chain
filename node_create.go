@@ -39,6 +39,7 @@ type ref struct {
 	RecaptchaCode  string   `json:"recaptcha_code" form:"recaptcha_code"`   // Required
 }
 
+// createNodeHandler is the handler to create a ref.
 func createNodeHandler(c echo.Context) error {
 
 	ctx := c.Request().Context()

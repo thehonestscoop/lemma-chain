@@ -65,6 +65,7 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// findChainHandler will list all nodes linked to the provided ref.
 func findChainHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 

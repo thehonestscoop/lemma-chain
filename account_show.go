@@ -30,8 +30,8 @@ type showAccountModel struct {
 }
 
 // showAccountHandler will list account information and all refs owned by the account.
-// If logged in, display email address and searchable nodes.
-// If not logged in, hide email address and all searchable nodes.
+// If logged in, display email address and all nodes.
+// If not logged in, hide email address and only list all searchable nodes.
 func showAccountHandler(c echo.Context) error {
 
 	ctx := c.Request().Context()
