@@ -44,3 +44,16 @@ func lookupEnvOrUseDefaultInt64(key string, defaultValue int64) int64 {
 		return defaultValue
 	}
 }
+
+func lookupEnvOrUseDefaultFloat64(key string, defaultValue float64) float64 {
+	val, found := os.LookupEnv(key)
+	if found {
+		f, err := strconv.ParseFloat(val, 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return f
+	} else {
+		return defaultValue
+	}
+}

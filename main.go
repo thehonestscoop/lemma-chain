@@ -36,8 +36,8 @@ func main() {
 	e := echo.New()
 
 	// Middleware
-	limiter := tollbooth.NewLimiter(1, nil)
-	limiter.SetIPLookups([]string{"RemoteAddr", "X-Forwarded-For", "X-Real-IP"})
+	limiter := tollbooth.NewLimiter(rateLimit, nil)
+	limiter.SetIPLookups([]string{"RemoteAddr", "X-Forwarded-For", "X-Real-IP"}) // If your application is behind a proxy, set "X-Forwarded-For" first.
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
