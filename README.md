@@ -3,6 +3,10 @@
 
 
 
+[Documentation](https://thehonestscoop.com/docs/lemma-chain)
+
+
+
 ## Features
 
 
