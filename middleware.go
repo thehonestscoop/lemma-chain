@@ -58,12 +58,14 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 				user_check1(func: eq(user.email, $email), first: 1) {
 					uid
 					user.name
+					user.validated
 					checkpwd: checkpwd(user.password, $password)
 				}
 
 				user_check2(func: eq(user.name, $name), first: 1) {
 					uid
 					user.name
+					user.validated
 					checkpwd: checkpwd(user.password, $password)
 				}
 			}
@@ -78,14 +80,16 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 		// Check if a user exists
 		type Root struct {
 			Check1 []struct {
-				UID      string `json:"uid"`
-				Name     string `json:"user.name"`
-				Checkpwd bool   `json:"checkpwd"`
+				UID       string `json:"uid"`
+				Name      string `json:"user.name"`
+				Validated bool   `json:"user.validated"`
+				Checkpwd  bool   `json:"checkpwd"`
 			} `json:"user_check1"`
 			Check2 []struct {
-				UID      string `json:"uid"`
-				Name     string `json:"user.name"`
-				Checkpwd bool   `json:"checkpwd"`
+				UID       string `json:"uid"`
+				Name      string `json:"user.name"`
+				Validated bool   `json:"user.validated"`
+				Checkpwd  bool   `json:"checkpwd"`
 			} `json:"user_check2"`
 		}
 
@@ -96,20 +100,45 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 		}
 
-		if len(r.Check1) == 1 && r.Check1[0].Checkpwd == true {
+		if len(r.Check1) == 0 && len(r.Check2) == 0 {
+			// User not found
+			return c.NoContent(http.StatusUnauthorized)
+		} else if len(r.Check1) == 1 {
+
+			if r.Check1[0].Checkpwd == false {
+				// Password incorrect
+				return c.NoContent(http.StatusUnauthorized)
+			}
+
+			if r.Check1[0].Validated == false {
+				// User has not verified email
+				return c.JSON(http.StatusUnauthorized, ErrorFmt("account requires email validation"))
+			}
+
 			c.Set("logged-in-user", r.Check1[0].Name)
 			c.Set("logged-in-user-uid", r.Check1[0].UID)
 
 			// Store data in cache
-			memoryCache.Set(key, map[string]string{"user": r.Check1[0].Name, "uid": r.Check1[0].UID},
-				cache.DefaultExpiration)
-		} else if len(r.Check2) == 1 && r.Check2[0].Checkpwd == true {
+			memoryCache.Set(key, map[string]string{"user": r.Check1[0].Name, "uid": r.Check1[0].UID}, cache.DefaultExpiration)
+
+		} else if len(r.Check2) == 1 {
+
+			if r.Check2[0].Checkpwd == false {
+				// Password incorrect
+				return c.NoContent(http.StatusUnauthorized)
+			}
+
+			if r.Check2[0].Validated == false {
+				// User has not verified email
+				return c.JSON(http.StatusUnauthorized, ErrorFmt("account requires email verification"))
+			}
+
 			c.Set("logged-in-user", r.Check2[0].Name)
 			c.Set("logged-in-user-uid", r.Check2[0].UID)
 
 			// Store data in cache
-			memoryCache.Set(key, map[string]string{"user": r.Check2[0].Name, "uid": r.Check2[0].UID},
-				cache.DefaultExpiration)
+			memoryCache.Set(key, map[string]string{"user": r.Check2[0].Name, "uid": r.Check2[0].UID}, cache.DefaultExpiration)
+
 		}
 
 		return next(c)
