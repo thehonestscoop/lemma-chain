@@ -1,3 +1,6 @@
+
+![Lemma-Chain](https://github.com/thehonestscoop/lemma-chain/raw/master/logo.png)
+
 # Lemma-Chain
 
 
