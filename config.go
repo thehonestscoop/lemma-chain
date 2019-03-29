@@ -17,8 +17,11 @@ var stdQueryTimeout = lookupEnvOrUseDefaultInt64("QUERY_TIMEOUT", 300)
 // cacheDuration sets (in minutes) the duration for which the GET request's response will be cached for.
 var cacheDuration = lookupEnvOrUseDefaultInt64("CACHE_DURATION", 15)
 
+// behindProxy sets whether the application sits behind a proxy. Valid values are 0 (No) or 1 (Yes).
+var behindProxy = lookupEnvOrUseDefaultInt("BEHIND_PROXY", 0)
+
 // rateLimit sets the maximum number of requests per second for a given IP address.
-var rateLimit = lookupEnvOrUseDefaultFloat64("RATE_LIMIT", 1.0)
+var rateLimit = lookupEnvOrUseDefaultFloat64("RATE_LIMIT", 4.0)
 
 // recaptchaSecret is used for Google Recaptcha protection in POST requests.
 // Use 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe for testing

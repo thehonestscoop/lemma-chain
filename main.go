@@ -37,7 +37,11 @@ func main() {
 
 	// Middleware
 	limiter := tollbooth.NewLimiter(rateLimit, nil)
-	limiter.SetIPLookups([]string{"RemoteAddr", "X-Forwarded-For", "X-Real-IP"}) // If your application is behind a proxy, set "X-Forwarded-For" first.
+	if behindProxy == 1 {
+		limiter.SetIPLookups([]string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"})
+	} else {
+		limiter.SetIPLookups([]string{"RemoteAddr", "X-Forwarded-For", "X-Real-IP"})
+	}
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
