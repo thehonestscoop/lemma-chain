@@ -14,6 +14,9 @@ var maxDataPayload = lookupEnvOrUseDefaultInt("MAX_PAYLOAD_KB", 12)
 // expensive GET requests.
 var stdQueryTimeout = lookupEnvOrUseDefaultInt64("QUERY_TIMEOUT", 300)
 
+// port used to listen for connections.
+var listenPort = lookupEnvOrUseDefaultInt64("PORT", 1323)
+
 // cacheDuration sets (in minutes) the duration for which the GET request's response will be cached for.
 var cacheDuration = lookupEnvOrUseDefaultInt64("CACHE_DURATION", 15)
 
