@@ -56,6 +56,8 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 			// This approach needs testing
 			out["refs"] = cm.Parents
 		}
+	} else {
+		out["refs"] = []int{}
 	}
 
 	if cm.Facet != nil {
@@ -195,11 +197,11 @@ func findChainHandler(c echo.Context) error {
 			chain(func: eq(node.hashid, $hashid)) %s {
 				uid
 				node.owner
-    			user.name
-    			node.hashid
-    			node.xdata
-    			node.parent @facets %s
-  			}
+				user.name
+				node.hashid
+				node.xdata
+				node.parent @facets %s
+			}
 		}
 	`
 
@@ -215,7 +217,7 @@ func findChainHandler(c echo.Context) error {
 	}
 
 	type RootChain struct {
-		Chain []ChainModel `json:"chain"`
+		Chain []*ChainModel `json:"chain"`
 	}
 
 	var rootChain RootChain
@@ -225,19 +227,10 @@ func findChainHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
-	out := map[string]interface{}{}
-
-	if len(rootChain.Chain[0].Parents) != 0 {
-		out["refs"] = rootChain.Chain[0].Parents
-	} else {
-		out["refs"] = []int{}
-	}
-
 	// Store data in cache
-	memoryCache.Set(key, out, cache.DefaultExpiration)
+	memoryCache.Set(key, rootChain.Chain[0], cache.DefaultExpiration)
 
-	return c.JSON(http.StatusOK, out)
-
+	return c.JSON(http.StatusOK, rootChain.Chain[0])
 }
 
 // splitNodeID returns owner name and hashid
