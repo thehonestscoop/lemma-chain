@@ -59,7 +59,7 @@ func searchHandler(c echo.Context) error {
 	key := fmt.Sprintf("search-%s", terms)
 	cachedData, found := memoryCache.Get(key)
 	if found {
-		log.Println("Using cache:" + key)
+		// log.Println("Using cache:" + key)
 		return c.JSON(http.StatusOK, cachedData)
 	}
 

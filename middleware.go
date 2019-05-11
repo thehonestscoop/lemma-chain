@@ -36,7 +36,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 		key := fmt.Sprintf("middleware.loginChecker-%s-%s", account, password)
 		cachedData, found := memoryCache.Get(key)
 		if found {
-			log.Println("Using cache:" + fmt.Sprintf("middleware.loginChecker-%s-xxx", account))
+			// log.Println("Using cache:" + fmt.Sprintf("middleware.loginChecker-%s-xxx", account))
 
 			cd := cachedData.(map[string]string)
 

@@ -100,7 +100,7 @@ func findChainHandler(c echo.Context) error {
 	key := fmt.Sprintf("*-%s-%s-%s", nodeID, _depth, strings.Join(refTypes, ","))
 	cachedData, found := memoryCache.Get(key)
 	if found {
-		log.Println("Using cache:" + key)
+		// log.Println("Using cache:" + key)
 		return c.JSON(http.StatusOK, cachedData)
 	}
 
