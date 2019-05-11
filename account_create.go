@@ -164,7 +164,7 @@ func createAccountHandler(c echo.Context) error {
 		true,
 	}
 
-	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshall(data)})
+	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshal(data)})
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))

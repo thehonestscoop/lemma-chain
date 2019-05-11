@@ -251,7 +251,7 @@ func createNodeHandler(c echo.Context) error {
 		data["node.search_synopsis"] = *r.SearchSynopsis
 	}
 
-	assigned, err := txn.Mutate(ctx, &api.Mutation{SetJson: marshall(data)})
+	assigned, err := txn.Mutate(ctx, &api.Mutation{SetJson: marshal(data)})
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
@@ -265,7 +265,7 @@ func createNodeHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
 
-	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshall(map[string]interface{}{
+	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshal(map[string]interface{}{
 		"uid":         uid,
 		"node.hashid": hashid,
 	})})

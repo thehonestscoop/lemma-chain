@@ -15,7 +15,7 @@ import (
 	"net/url"
 )
 
-func marshall(d interface{}) []byte {
+func marshal(d interface{}) []byte {
 	x, _ := json.Marshal(d)
 	return x
 }
