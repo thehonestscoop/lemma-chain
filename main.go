@@ -46,6 +46,7 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 	e.Use(tollbooth_echo.LimitHandler(limiter))
 	e.Use(nocache)
 	e.Use(loginChecker)
