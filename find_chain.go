@@ -20,11 +20,13 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+type OwnerModel struct {
+	Name string `json:"user.name"`
+}
+
 type ChainModel struct {
-	UID   string `json:"uid"` // Required due to: https://github.com/dgraph-io/dgraph/issues/3163
-	Owner []struct {
-		Name string `json:"user.name"`
-	} `json:"node.owner"`
+	UID     string       `json:"uid"` // Required due to: https://github.com/dgraph-io/dgraph/issues/3163
+	Owner   []OwnerModel `json:"node.owner"`
 	HashID  string       `json:"node.hashid"`
 	XData   string       `json:"node.xdata"`
 	Parents []ChainModel `json:"node.parent"`
@@ -234,6 +236,44 @@ func findChainHandler(c echo.Context) error {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
 	}
+
+	/////// Expand owners in deeply nested nodes due to BUG: https://github.com/dgraph-io/dgraph/issues/3634
+
+	uidToOwnerModel := map[string]string{} // key is uid, value is owner account name
+
+	var inspect func([]ChainModel, bool)
+	inspect = func(chain []ChainModel, insert bool) {
+
+		for i := range chain {
+			cm := &chain[i]
+
+			if !insert {
+				if len(cm.Owner) > 0 {
+					uidToOwnerModel[cm.UID] = cm.Owner[0].Name
+				}
+			} else {
+				if ownerID, exists := uidToOwnerModel[cm.UID]; exists {
+					cm.Owner = []OwnerModel{OwnerModel{Name: ownerID}}
+				}
+			}
+
+			inspect(cm.Parents, insert)
+		}
+	}
+
+	cm := rootChain.Chain[0]
+	if len(cm.Owner) > 0 {
+		uidToOwnerModel[cm.UID] = cm.Owner[0].Name
+	}
+	inspect(cm.Parents, false)
+
+	// Insert owners back into model
+	if ownerID, exists := uidToOwnerModel[cm.UID]; exists {
+		cm.Owner = []OwnerModel{OwnerModel{Name: ownerID}}
+	}
+	inspect(cm.Parents, true)
+
+	///////
 
 	// Store data in cache
 	memoryCache.Set(key, rootChain.Chain[0], cache.DefaultExpiration)
