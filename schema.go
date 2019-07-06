@@ -15,7 +15,7 @@ func setSchema() {
 
 	op := &api.Operation{}
 	op.Schema = `
-		user: bool .
+		user: bool @index(bool) .
 		user.name: string @index(hash) .
 		user.email: string @index(hash) .
 		user.password: password .
@@ -23,7 +23,7 @@ func setSchema() {
 		user.created_at: dateTime .
 		user.validated: bool @index(bool) .
 
-		node: bool .
+		node: bool @index(bool) .
 		node.hashid: string @index(hash) . 
 		node.owner: uid @reverse . 
 		node.parent: uid . 
@@ -42,7 +42,7 @@ func setSchema() {
 
 }
 
-// user: bool .
+// user: bool @index(bool) .
 // user.name: string @index(hash) . # this should be unique
 // user.email: string @index(hash) . # this should be unique and lower-cased
 // user.password: password .
@@ -50,7 +50,7 @@ func setSchema() {
 // user.created_at: dateTime .
 // user.validated: bool @index(bool) . # Check if email validation passed
 
-// node: bool .
+// node: bool @index(bool) .
 // node.hashid: string @index(exact) . # @username/hashid
 // node.owner: uid @reverse . # (can be null)
 // node.parent: uid . # [uid] (use facet) (can be null)
