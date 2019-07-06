@@ -42,6 +42,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.Set("logged-in-user", cd["user"])
 			c.Set("logged-in-user-uid", cd["uid"])
+			c.Set("logged-in-user-email", cd["email"])
 		}
 
 		// Check login
@@ -58,6 +59,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 				user_check1(func: eq(user.email, $email), first: 1) {
 					uid
 					user.name
+					user.email
 					user.validated
 					checkpwd: checkpwd(user.password, $password)
 				}
@@ -65,6 +67,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 				user_check2(func: eq(user.name, $name), first: 1) {
 					uid
 					user.name
+					user.email
 					user.validated
 					checkpwd: checkpwd(user.password, $password)
 				}
@@ -82,12 +85,14 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 			Check1 []struct {
 				UID       string `json:"uid"`
 				Name      string `json:"user.name"`
+				Email     string `json:"user.email"`
 				Validated bool   `json:"user.validated"`
 				Checkpwd  bool   `json:"checkpwd"`
 			} `json:"user_check1"`
 			Check2 []struct {
 				UID       string `json:"uid"`
 				Name      string `json:"user.name"`
+				Email     string `json:"user.email"`
 				Validated bool   `json:"user.validated"`
 				Checkpwd  bool   `json:"checkpwd"`
 			} `json:"user_check2"`
@@ -117,9 +122,10 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.Set("logged-in-user", r.Check1[0].Name)
 			c.Set("logged-in-user-uid", r.Check1[0].UID)
+			c.Set("logged-in-user-email", r.Check1[0].Email)
 
 			// Store data in cache
-			memoryCache.Set(key, map[string]string{"user": r.Check1[0].Name, "uid": r.Check1[0].UID}, cache.DefaultExpiration)
+			memoryCache.Set(key, map[string]string{"user": r.Check1[0].Name, "uid": r.Check1[0].UID, "email": r.Check1[0].Email}, cache.DefaultExpiration)
 
 		} else if len(r.Check2) == 1 {
 
@@ -135,9 +141,10 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.Set("logged-in-user", r.Check2[0].Name)
 			c.Set("logged-in-user-uid", r.Check2[0].UID)
+			c.Set("logged-in-user-email", r.Check2[0].Email)
 
 			// Store data in cache
-			memoryCache.Set(key, map[string]string{"user": r.Check2[0].Name, "uid": r.Check2[0].UID}, cache.DefaultExpiration)
+			memoryCache.Set(key, map[string]string{"user": r.Check2[0].Name, "uid": r.Check2[0].UID, "email": r.Check2[0].Email}, cache.DefaultExpiration)
 
 		}
 
