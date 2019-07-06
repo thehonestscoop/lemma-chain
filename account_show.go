@@ -37,7 +37,7 @@ func showAccountHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	loggedInUser := c.Get("logged-in-user")
-	name := strings.TrimPrefix(c.Param("name"), "@")
+	name := strings.ToLower(strings.TrimPrefix(c.Param("name"), "@"))
 
 	// Query for all nodes owned by user
 	txn := dg.NewReadOnlyTxn()

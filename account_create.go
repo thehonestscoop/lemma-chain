@@ -43,7 +43,7 @@ func createAccountHandler(c echo.Context) error {
 	u.Password1 = strings.TrimSpace(u.Password1)
 
 	// Name:
-	u.Name = strings.TrimPrefix(u.Name, "@")
+	u.Name = strings.ToLower(strings.TrimPrefix(u.Name, "@"))
 
 	if u.Name == "" {
 		return c.JSON(http.StatusBadRequest, ErrorFmt("name must not be empty"))

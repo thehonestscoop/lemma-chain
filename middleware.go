@@ -25,7 +25,7 @@ func loginChecker(next echo.HandlerFunc) echo.HandlerFunc {
 
 		account := strings.TrimSpace(c.Request().Header.Get("X-AUTH-ACCOUNT")) // Can be an account name or email
 		password := strings.TrimSpace(c.Request().Header.Get("X-AUTH-PASSWORD"))
-		name := strings.TrimPrefix(account, "@")
+		name := strings.ToLower(strings.TrimPrefix(account, "@"))
 		email := strings.ToLower(account)
 
 		if account == "" || password == "" {

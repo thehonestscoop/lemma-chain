@@ -111,7 +111,7 @@ func createNodeHandler(c echo.Context) error {
 
 	// If the owner name is supplied, check if it is the same as the logged in user.
 	if r.Owner != nil {
-		suppliedOwnerName := strings.TrimPrefix(strings.TrimSpace(*r.Owner), "@")
+		suppliedOwnerName := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(*r.Owner), "@"))
 		if suppliedOwnerName == "" {
 			return c.JSON(http.StatusBadRequest, ErrorFmt("owner is invalid"))
 		}
@@ -347,7 +347,7 @@ func splitRefName(refName string) (string, *string, string, error) {
 		return "", nil, "", errors.New("provided parent ref does not exist")
 	}
 
-	ownerName := strings.TrimSpace(strings.TrimPrefix(splits[0], "@"))
+	ownerName := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(splits[0], "@")))
 	if ownerName == "" {
 		return "", nil, "", errors.New("invalid parent ref")
 	}
