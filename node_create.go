@@ -116,8 +116,10 @@ func createNodeHandler(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, ErrorFmt("owner is invalid"))
 		}
 
+		// suppliedOwnerName could be account name or account email
 		loggedInUser := c.Get("logged-in-user")
-		if loggedInUser == nil || loggedInUser.(string) != suppliedOwnerName {
+		loggedInUserEmail := c.Get("logged-in-user-email")
+		if loggedInUser == nil || ((loggedInUser.(string) != suppliedOwnerName) && (loggedInUserEmail.(string) != suppliedOwnerName)) {
 			return c.JSON(http.StatusUnauthorized, ErrorFmt("owner requires login"))
 		}
 	}
@@ -127,8 +129,8 @@ func createNodeHandler(c echo.Context) error {
 
 	if len(r.Parents) != 0 {
 
-		if len(r.Parents) > 100 {
-			return c.JSON(http.StatusBadRequest, ErrorFmt("max 100 parent refs permitted"))
+		if len(r.Parents) > 250 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("max 250 parent refs permitted"))
 		}
 
 		type P struct {
@@ -306,11 +308,18 @@ func splitRefName(refName string) (string, *string, string, error) {
 	}
 
 	facet := splits[0]
+	facet = strings.TrimSpace(facet)
 	if facet == "" {
 		return "", nil, "", errors.New("invalid parent: ref type must not be empty")
 	}
-	if len(facet) > 30 {
-		return "", nil, "", errors.New("invalid parent: ref type must be at most 30 characters")
+	if len(facet) > 75 {
+		return "", nil, "", errors.New("invalid parent: ref type must be at most 75 characters")
+	}
+
+	for _, char := range facet {
+		if char == 34 || char == 64 || char == 47 {
+			return "", nil, "", errors.New("invalid parent: ref type must not contain \", @ or /")
+		}
 	}
 
 	remainder := strings.Join(splits[1:], ":")

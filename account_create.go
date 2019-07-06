@@ -53,10 +53,10 @@ func createAccountHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, ErrorFmt("name must be less than 50 characters"))
 	}
 
-	// Check if name contains any whitespace or @ sign or / sign
+	// Check if name contains any whitespace or " or @ sign or / sign
 	for _, char := range u.Name {
-		if unicode.IsSpace(char) || char == 64 || char == 47 {
-			return c.JSON(http.StatusBadRequest, ErrorFmt("name must not contain spaces, @ or /"))
+		if unicode.IsSpace(char) || char == 34 || char == 64 || char == 47 {
+			return c.JSON(http.StatusBadRequest, ErrorFmt("name must not contain spaces, \", @ or /"))
 		}
 	}
 
