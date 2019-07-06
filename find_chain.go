@@ -28,7 +28,7 @@ type ChainModel struct {
 	HashID  string       `json:"node.hashid"`
 	XData   string       `json:"node.xdata"`
 	Parents []ChainModel `json:"node.parent"`
-	Facet   *string      `json:"node.parent|facet"`
+	Facet   interface{}  `json:"node.parent|facet"` // Changed from *string due to https://github.com/dgraph-io/dgraph/issues/3582
 }
 
 func (cm *ChainModel) MarshalJSON() ([]byte, error) {
@@ -60,8 +60,16 @@ func (cm *ChainModel) MarshalJSON() ([]byte, error) {
 		out["refs"] = []int{}
 	}
 
+	// https://github.com/dgraph-io/dgraph/issues/3582
 	if cm.Facet != nil {
-		out["ref_type"] = *cm.Facet
+		switch v := cm.Facet.(type) {
+		case string:
+			out["ref_type"] = v
+		case []string:
+			out["ref_type"] = v[0]
+		case []interface{}:
+			out["ref_type"] = v[0]
+		}
 	}
 
 	return json.Marshal(out)
