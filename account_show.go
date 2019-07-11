@@ -111,7 +111,7 @@ func showAccountHandler(c echo.Context) error {
 
 		}
 
-		return c.JSON(http.StatusOK, root.Model[0])
+		return c.JSONPretty(http.StatusOK, root.Model[0], "  ")
 	}
 
 	return c.NoContent(http.StatusNotFound)

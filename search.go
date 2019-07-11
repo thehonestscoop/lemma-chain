@@ -60,7 +60,7 @@ func searchHandler(c echo.Context) error {
 	cachedData, found := memoryCache.Get(key)
 	if found {
 		// log.Println("Using cache:" + key)
-		return c.JSON(http.StatusOK, cachedData)
+		return c.JSONPretty(http.StatusOK, cachedData, "  ")
 	}
 
 	txn := dg.NewReadOnlyTxn()
@@ -116,5 +116,5 @@ func searchHandler(c echo.Context) error {
 	// Store data in cache
 	memoryCache.Set(key, root, cache.DefaultExpiration)
 
-	return c.JSON(http.StatusOK, root)
+	return c.JSONPretty(http.StatusOK, root, "  ")
 }
