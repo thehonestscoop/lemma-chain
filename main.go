@@ -55,6 +55,7 @@ func main() {
 	e.POST("/accounts", createAccountHandler)
 	e.GET("/accounts/:name", showAccountHandler)
 	e.POST("/ref", createNodeHandler)
+	e.GET("/verify/:code", verifyHandler)
 	e.GET("/search/:terms", searchHandler) // Cached
 	e.GET("*", findChainHandler)           // Cached
 

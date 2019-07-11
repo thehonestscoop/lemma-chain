@@ -26,6 +26,18 @@ var behindProxy = lookupEnvOrUseDefaultInt("BEHIND_PROXY", 0)
 // rateLimit sets the maximum number of requests per second for a given IP address.
 var rateLimit = lookupEnvOrUseDefaultFloat64("RATE_LIMIT", 4.0)
 
+// Both gmailAccount and gmailPassword must be set to send account activation emails.
+// If not set, accounts are automatically activated.
+// serverHostUrl is the url root that the lemma chain server runs on. Activation links will use
+// this url.
+// website will be the website url that the activation link will redirect to.
+var (
+	website       = lookupEnvOrUseDefault("WEBSITE_URL", "")
+	serverHostUrl = lookupEnvOrUseDefault("HOST_URL", "")
+	gmailAccount  = lookupEnvOrUseDefault("GMAIL_ACCOUNT", "")
+	gmailPassword = lookupEnvOrUseDefault("GMAIL_PASSWORD", "")
+)
+
 // recaptchaSecret is used for Google Recaptcha protection in POST requests.
 // Use 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe for testing
 var recaptchaSecret = lookupEnvOrUseDefault("RECAPTCHA_SECRET", "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe")

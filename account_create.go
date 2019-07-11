@@ -159,6 +159,14 @@ func createAccountHandler(c echo.Context) error {
 	}
 
 	// Save User
+
+	activationCode := fmt.Sprintf("%08x", crc32.ChecksumIEEE([]byte(uuid.NewV4().String())))
+	activate := false
+
+	if strings.TrimSpace(gmailAccount) == "" && strings.TrimSpace(gmailPassword) == "" {
+		activate = true
+	}
+
 	data := struct {
 		User      bool      `json:"user"`
 		Name      string    `json:"user.name"`
@@ -172,15 +180,23 @@ func createAccountHandler(c echo.Context) error {
 		u.Name,
 		u.Email,
 		u.Password1,
-		fmt.Sprintf("%08x", crc32.ChecksumIEEE([]byte(uuid.NewV4().String()))),
+		activationCode,
 		time.Now().UTC(),
-		true,
+		activate,
 	}
 
 	_, err = txn.Mutate(ctx, &api.Mutation{SetJson: marshal(data)})
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
+	}
+
+	if !activate {
+		err = sendEmail(u.Email, activationCode)
+		if err != nil {
+			log.Println(err)
+			return c.JSON(http.StatusInternalServerError, ErrorFmt("something went wrong. Try again"))
+		}
 	}
 
 	err = txn.Commit(ctx)

@@ -16,12 +16,11 @@
 * Create unlimited references
 * Link references to up to 250 other references
 * Powerful Search Functionality
+* Account activation via email validation (using gmail)
 
 ## TODO
 
 * Password Recovery
-* Account activation via email validation
-
 
 ## License
 

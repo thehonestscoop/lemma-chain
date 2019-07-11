@@ -19,7 +19,7 @@ func setSchema() {
 		user.name: string @index(hash) .
 		user.email: string @index(hash) .
 		user.password: password .
-		user.code: string . 
+		user.code: string @index(hash) . 
 		user.created_at: dateTime .
 		user.validated: bool @index(bool) .
 
@@ -46,7 +46,7 @@ func setSchema() {
 // user.name: string @index(hash) . # this should be unique
 // user.email: string @index(hash) . # this should be unique and lower-cased
 // user.password: password .
-// user.code: string . # for password recovery (can be null)
+// user.code: string @index(hash) . # for password recovery (can be null)
 // user.created_at: dateTime .
 // user.validated: bool @index(bool) . # Check if email validation passed
 
