@@ -60,6 +60,19 @@ func createAccountHandler(c echo.Context) error {
 		}
 	}
 
+	// Block reserved names
+	// reservedNames := map[string]struct{}{
+	// 	"account":  struct{}{},
+	// 	"accounts": struct{}{},
+	// 	"ref":      struct{}{},
+	// 	"verify":   struct{}{},
+	// 	"search":   struct{}{},
+	// }
+
+	// if _, exists := reservedNames[u.Name]; exists {
+	// 	return c.JSON(http.StatusBadRequest, ErrorFmt("name already exists"))
+	// }
+
 	// Email:
 	u.Email = strings.ToLower(u.Email)
 

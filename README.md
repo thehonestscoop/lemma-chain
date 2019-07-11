@@ -14,7 +14,7 @@
 
 * Create Account using email address
 * Create unlimited references
-* Link references to up to 100 other references
+* Link references to up to 250 other references
 * Powerful Search Functionality
 
 ## TODO

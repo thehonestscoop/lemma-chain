@@ -37,6 +37,11 @@ func showAccountHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	loggedInUser := c.Get("logged-in-user")
+
+	// Check if name has "@" prefix
+	if !strings.HasPrefix(c.Param("name"), "@") {
+		return c.NoContent(http.StatusNotFound)
+	}
 	name := strings.ToLower(strings.TrimPrefix(c.Param("name"), "@"))
 
 	// Query for all nodes owned by user
