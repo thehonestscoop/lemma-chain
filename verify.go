@@ -22,11 +22,12 @@ import (
 )
 
 func init() {
-
-	c := time.Tick(24 * time.Hour) // Run daily
-	for range c {
-		cleanup(context.Background())
-	}
+	go func() {
+		c := time.Tick(24 * time.Hour) // Run daily
+		for range c {
+			cleanup(context.Background())
+		}
+	}()
 }
 
 // cleanup will remove all nodes that have not been activated for 48 hours.
