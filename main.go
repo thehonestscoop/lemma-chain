@@ -21,7 +21,7 @@ var dg *dgo.Dgraph
 
 func init() {
 
-	conn, err := grpc.Dial("127.0.0.1:9080", grpc.WithInsecure())
+	conn, err := grpc.Dial(dgraphUrl, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal("While trying to dial gRPC")
 	}

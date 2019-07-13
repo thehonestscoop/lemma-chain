@@ -26,6 +26,9 @@ var behindProxy = lookupEnvOrUseDefaultInt("BEHIND_PROXY", 0)
 // rateLimit sets the maximum number of requests per second for a given IP address.
 var rateLimit = lookupEnvOrUseDefaultFloat64("RATE_LIMIT", 4.0)
 
+// dgraphUrl sets the location of the DGraph server.
+var dgraphUrl = lookupEnvOrUseDefault("DGRAPH_URL", "127.0.0.1:9080")
+
 // Both gmailAccount and gmailPassword must be set to send account activation emails.
 // If not set, accounts are automatically activated.
 // serverHostUrl is the url root that the lemma chain server runs on. Activation links will use
