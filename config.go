@@ -36,6 +36,8 @@ var (
 	serverHostUrl = lookupEnvOrUseDefault("HOST_URL", "")
 	gmailAccount  = lookupEnvOrUseDefault("GMAIL_ACCOUNT", "")
 	gmailPassword = lookupEnvOrUseDefault("GMAIL_PASSWORD", "")
+	smtpHost      = lookupEnvOrUseDefault("SMTP_HOST", "smtp.gmail.com")
+	smtpPort      = lookupEnvOrUseDefaultInt("SMTP_PORT", 587)
 )
 
 // recaptchaSecret is used for Google Recaptcha protection in POST requests.

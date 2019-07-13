@@ -20,7 +20,7 @@ func setSchema() {
 		user.email: string @index(hash) .
 		user.password: password .
 		user.code: string @index(hash) . 
-		user.created_at: dateTime .
+		user.created_at: dateTime @index(day) .
 		user.validated: bool @index(bool) .
 
 		node: bool @index(bool) .
@@ -47,7 +47,7 @@ func setSchema() {
 // user.email: string @index(hash) . # this should be unique and lower-cased
 // user.password: password .
 // user.code: string @index(hash) . # for password recovery (can be null)
-// user.created_at: dateTime .
+// user.created_at: dateTime @index(day) .
 // user.validated: bool @index(bool) . # Check if email validation passed
 
 // node: bool @index(bool) .
